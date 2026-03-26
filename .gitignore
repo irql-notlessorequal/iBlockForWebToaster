@@ -1,5 +1,9 @@
 .DS_Store
 
+# IDEs
+.vscode/
+.idea/
+
 # Built application files
 *.apk
 *.aar
