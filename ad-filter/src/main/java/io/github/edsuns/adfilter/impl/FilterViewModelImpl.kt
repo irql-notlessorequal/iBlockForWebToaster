@@ -17,6 +17,9 @@ import io.github.edsuns.adfilter.workers.DownloadWorker
 import io.github.edsuns.adfilter.workers.InstallationWorker
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 
@@ -83,19 +86,29 @@ internal class FilterViewModelImpl constructor(
 
     init {
         workManager.pruneWork()
-        // clear bad running download state
-        filters.value?.values?.forEach {
-            if (it.downloadState.isRunning) {
-                val list = workManager.getWorkInfosForUniqueWork(it.id).get()
-                if (list == null || list.isEmpty()) {
-                    it.downloadState = DownloadState.FAILED
-                    flushFilter()
-                } else {
-                    if (list[0].state == WorkInfo.State.ENQUEUED
-                        && it.downloadState != DownloadState.ENQUEUED
-                    ) {
-                        it.downloadState = DownloadState.ENQUEUED
-                        flushFilter()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching {
+                filters.value?.values?.forEach { filter ->
+                    if (filter.downloadState.isRunning) {
+                        val list = workManager.getWorkInfosForUniqueWork(filter.id).get()
+                        if (list == null || list.isEmpty()) {
+                            filter.downloadState = DownloadState.FAILED
+                            flushFilter()
+                        } else {
+                            if (list[0].state == WorkInfo.State.ENQUEUED
+                                && filter.downloadState != DownloadState.ENQUEUED
+                            ) {
+                                filter.downloadState = DownloadState.ENQUEUED
+                                flushFilter()
+                            }
+                        }
+                    }
+                }
+            }.onFailure {
+                filters.value?.values?.forEach {
+                    if (it.downloadState.isRunning) {
+                        it.downloadState = DownloadState.FAILED
                     }
                 }
             }
