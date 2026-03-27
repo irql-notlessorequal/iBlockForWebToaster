@@ -30,12 +30,10 @@ import timber.log.Timber
 class AdBlockClient(override val id: String) : Client {
 
     private val nativeClientPointer: Long
-    private var rawDataPointer: Long
     private var processedDataPointer: Long
 
     init {
         nativeClientPointer = createClient()
-        rawDataPointer = 0
         processedDataPointer = 0
     }
 
@@ -47,7 +45,7 @@ class AdBlockClient(override val id: String) : Client {
     fun loadBasicData(data: ByteArray, preserveRules: Boolean = false) {
         val timestamp = System.currentTimeMillis()
         Timber.d("Loading basic data for $id")
-        rawDataPointer = loadBasicData(nativeClientPointer, data, preserveRules)
+        loadBasicData(nativeClientPointer, data, preserveRules)
         Timber.d("Loading basic data for $id completed in ${System.currentTimeMillis() - timestamp}ms")
     }
 
@@ -63,7 +61,7 @@ class AdBlockClient(override val id: String) : Client {
         clientPointer: Long,
         data: ByteArray,
         preserveRules: Boolean
-    ): Long
+    )
 
     fun loadProcessedData(data: ByteArray) {
         val timestamp = System.currentTimeMillis()
@@ -120,12 +118,11 @@ class AdBlockClient(override val id: String) : Client {
 
     @Suppress("unused", "protectedInFinal")
     protected fun finalize() {
-        releaseClient(nativeClientPointer, rawDataPointer, processedDataPointer)
+        releaseClient(nativeClientPointer, processedDataPointer)
     }
 
     private external fun releaseClient(
         clientPointer: Long,
-        rawDataPointer: Long,
         processedDataPointer: Long
     )
 
